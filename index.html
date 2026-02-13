@@ -1,604 +1,535 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>瑄瑄和硕硕的世界</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>瑄瑄和硕硕的世界</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Noto+Serif+SC:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Noto+Serif+SC:wght@500&display=swap" rel="stylesheet">
 
-  <style>
-    :root{
-      --primary-color:#ff6b81;
-      --bg-color:#1a1a2e;
-      --text-color:#e0e0e0;
-    }
-    body, html{
-      margin:0; padding:0; height:100%;
-      font-family:'Noto Serif SC', serif;
-      background-color:var(--bg-color);
-      color:var(--text-color);
-      overflow-x:hidden;
-    }
+  <style>
+    :root{
+      --primary-color:#ff6b81;
+      --bg-color:#1a1a2e;
+      --text-color:#e0e0e0;
+    }
 
-    /* 登录层 */
-    #login-overlay{
-      position:fixed; inset:0;
-      background:linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('photo1.jpg') no-repeat center/cover;
-      display:flex; flex-direction:column;
-      justify-content:center; align-items:center;
-      z-index:9999;
-      transition:opacity 0.8s ease-out;
-    }
-    #login-overlay h1{
-      font-family:'Dancing Script', cursive;
-      font-size:3.2em;
-      color:var(--primary-color);
-      text-shadow:2px 2px 4px rgba(0,0,0,0.5);
-      margin-bottom:30px;
-      cursor:pointer;
-      text-align:center;
-      padding:0 20px;
-    }
-    .login-box{
-      background:rgba(255,255,255,0.1);
-      backdrop-filter:blur(10px);
-      padding:30px;
-      border-radius:15px;
-      text-align:center;
-      display:none;
-    }
-    .login-box input{
-      padding:10px;
-      font-size:16px;
-      border:2px solid var(--primary-color);
-      border-radius:6px;
-      background:rgba(255,255,255,0.9);
-      outline:none;
-    }
-    .login-box button{
-      margin-top:15px;
-      padding:10px 26px;
-      font-size:18px;
-      background-color:var(--primary-color);
-      color:white;
-      border:none;
-      border-radius:999px;
-      cursor:pointer;
-    }
-    #error-msg{ color:#ff6b6b; display:none; margin-top:10px; }
+    body, html{
+      margin:0; padding:0; height:100%;
+      font-family:'Noto Serif SC', serif;
+      background-color:var(--bg-color);
+      color:var(--text-color);
+      overflow-x:hidden;
+    }
 
-    /* 主内容 */
-    #main-content{
-      display:none;
-      opacity:0;
-      transition:opacity 1s ease-in;
-      padding-bottom:50px;
-    }
-    section{
-      min-height:80vh;
-      padding:40px 20px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-    }
-    h2.section-title{
-      font-family:'Dancing Script', cursive;
-      font-size:3em;
-      color:var(--primary-color);
-      margin-bottom:40px;
-    }
+    /* ================= 登录遮罩层样式 ================= */
+    #login-overlay{
+      position:fixed;
+      inset:0;
+      background:linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('photo1.jpg') no-repeat center/cover;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      z-index:9999;
+      transition:opacity 0.8s ease-out;
+    }
 
-    /* 爱心照片墙 */
-    #gallery-section{
-      background:#1a1a2e;
-      position:relative;
-      overflow:hidden;
-      min-height:900px;
-    }
-    .heart-stage{
-      position:relative;
-      width:min(980px, 95vw);
-      height:min(720px, 78vh);
-      margin:0 auto;
-      border-radius:24px;
-      box-shadow:0 0 70px rgba(255,107,129,0.08);
-    }
-    .heart-stage::before{
-      content:"";
-      position:absolute; inset:0;
-      background:
-        radial-gradient(circle at 30% 30%, rgba(255,107,129,0.10), transparent 45%),
-        radial-gradient(circle at 70% 40%, rgba(255,107,129,0.08), transparent 50%),
-        radial-gradient(circle at 50% 70%, rgba(255,255,255,0.04), transparent 55%);
-      pointer-events:none;
-      border-radius:24px;
-    }
-    .heart-item{
-      position:absolute;
-      width:120px; height:86px;
-      border-radius:14px;
-      overflow:hidden;
-      border:3px solid rgba(255,255,255,0.95);
-      box-shadow:0 18px 40px rgba(0,0,0,0.55);
-      background:#000;
-      cursor:pointer;
-      transform:translate(-50%, -50%) rotate(var(--r, 0deg));
-      transition:transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
-      will-change:transform;
-    }
-    .heart-item img{
-      width:100%; height:100%;
-      object-fit:cover;
-      display:block;
-    }
-    .heart-item:hover{
-      transform:translate(-50%, -50%) rotate(var(--r, 0deg)) scale(1.06);
-      box-shadow:0 24px 60px rgba(0,0,0,0.65);
-      filter:brightness(1.05);
-      z-index:10;
-    }
+    #login-overlay h1{
+      font-family:'Dancing Script', cursive;
+      font-size:3.5em;
+      color:var(--primary-color);
+      text-shadow:2px 2px 4px rgba(0,0,0,0.5);
+      margin-bottom:30px;
+      cursor:pointer;
+      text-align:center;
+      padding:0 20px;
+    }
 
-    /* Lightbox */
-    .lightbox{
-      position:fixed; inset:0;
-      background:rgba(0,0,0,0.72);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      z-index:9998;
-      padding:20px;
-    }
-    .lightbox.show{ display:flex; }
-    .lightbox-card{
-      width:min(920px, 92vw);
-      background:rgba(255,255,255,0.06);
-      border:1px solid rgba(255,255,255,0.18);
-      backdrop-filter:blur(10px);
-      border-radius:18px;
-      overflow:hidden;
-      box-shadow:0 30px 90px rgba(0,0,0,0.6);
-      position:relative;
-    }
-    .lightbox-imgwrap{
-      width:100%;
-      aspect-ratio: 16/10;
-      background:#000;
-      display:flex; align-items:center; justify-content:center;
-    }
-    .lightbox-imgwrap img{
-      width:100%; height:100%;
-      object-fit:contain;
-      display:block;
-      background:#000;
-    }
-    .lightbox-bar{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
-      padding:12px 14px;
-      color:#ddd;
-      font-size:14px;
-    }
-    .lightbox-btn{
-      background:rgba(255,255,255,0.10);
-      border:1px solid rgba(255,255,255,0.18);
-      color:#fff;
-      padding:8px 12px;
-      border-radius:999px;
-      cursor:pointer;
-      user-select:none;
-    }
-    .lightbox-close{
-      position:absolute;
-      top:10px; right:10px;
-      width:38px; height:38px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      border-radius:999px;
-      background:rgba(0,0,0,0.35);
-      border:1px solid rgba(255,255,255,0.15);
-      cursor:pointer;
-      color:#fff;
-      font-size:20px;
-      z-index:2;
-    }
+    .login-box{
+      background:rgba(255,255,255,0.1);
+      backdrop-filter:blur(10px);
+      padding:30px;
+      border-radius:15px;
+      text-align:center;
+      display:none;
+    }
 
-    /* 地图 */
-    #map{
-      width:95%;
-      max-width:1000px;
-      height:500px;
-      border-radius:15px;
-      border:3px solid var(--primary-color);
-    }
+    .login-box input{
+      padding:10px;
+      font-size:16px;
+      border:2px solid var(--primary-color);
+      border-radius:5px;
+      background:rgba(255,255,255,0.9);
+      outline:none;
+    }
 
-    #timer{ font-size:1.8em; line-height:1.5; }
-    .timer-digit{ color:var(--primary-color); font-weight:bold; }
+    .login-box button{
+      margin-top:15px;
+      padding:10px 25px;
+      font-size:18px;
+      background-color:var(--primary-color);
+      color:white;
+      border:none;
+      border-radius:25px;
+      cursor:pointer;
+      transition:transform 0.3s;
+    }
 
-    @media (max-width: 520px){
-      .heart-item{ width:92px; height:66px; border-width:2px; }
-      #login-overlay h1{ font-size:2.6em; }
-    }
+    /* ================= 主内容区域样式 ================= */
+    #main-content{
+      display:none;
+      opacity:0;
+      transition:opacity 1s ease-in;
+      padding-bottom:50px;
+    }
 
-    /* ✅ 音乐按钮（全端可用） */
-    .music-fab{
-      position:fixed;
-      top:14px;
-      right:14px;
-      z-index:10000;
-      background:rgba(0,0,0,0.45);
-      border:1px solid rgba(255,255,255,0.18);
-      color:#fff;
-      padding:10px 12px;
-      border-radius:999px;
-      backdrop-filter:blur(10px);
-      cursor:pointer;
-      user-select:none;
-      display:none; /* 登录后显示 */
-      font-size:14px;
-    }
+    section{
+      min-height:80vh;
+      padding:40px 20px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+    }
 
-    /* ✅ Safari 失败时的提示条 */
-    .music-toast{
-      position:fixed;
-      left:50%;
-      bottom:18px;
-      transform:translateX(-50%);
-      z-index:10000;
-      background:rgba(0,0,0,0.55);
-      border:1px solid rgba(255,255,255,0.18);
-      color:#fff;
-      padding:10px 14px;
-      border-radius:999px;
-      backdrop-filter:blur(10px);
-      font-size:14px;
-      cursor:pointer;
-      user-select:none;
-      display:none;
-      max-width:92vw;
-      text-align:center;
-    }
-  </style>
+    h2.section-title{
+      font-family:'Dancing Script', cursive;
+      font-size:3em;
+      color:var(--primary-color);
+      margin-bottom:40px;
+    }
+
+    /* ================= 爱心照片墙 ================= */
+    #gallery-section{
+      background:#1a1a2e;
+      position:relative;
+      overflow:hidden;
+      min-height:900px;
+    }
+
+    .heart-stage{
+      position:relative;
+      width:min(980px, 95vw);
+      height:min(720px, 78vh);
+      margin:0 auto;
+      border-radius:24px;
+      box-shadow:0 0 70px rgba(255,107,129,0.08);
+    }
+
+    .heart-stage::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,107,129,0.10), transparent 45%),
+        radial-gradient(circle at 70% 40%, rgba(255,107,129,0.08), transparent 50%),
+        radial-gradient(circle at 50% 70%, rgba(255,255,255,0.04), transparent 55%);
+      pointer-events:none;
+      border-radius:24px;
+    }
+
+    .heart-item{
+      position:absolute;
+      width:120px;
+      height:86px;
+      border-radius:14px;
+      overflow:hidden;
+      border:3px solid rgba(255,255,255,0.95);
+      box-shadow:0 18px 40px rgba(0,0,0,0.55);
+      background:#000;
+      cursor:pointer;
+      transform:translate(-50%, -50%) rotate(var(--r, 0deg));
+      transition:transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+      will-change:transform;
+    }
+
+    .heart-item img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .heart-item:hover{
+      transform:translate(-50%, -50%) rotate(var(--r, 0deg)) scale(1.06);
+      box-shadow:0 24px 60px rgba(0,0,0,0.65);
+      filter:brightness(1.05);
+      z-index:10;
+    }
+
+    /* 大图查看（lightbox） */
+    .lightbox{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.72);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:9998;
+      padding:20px;
+    }
+    .lightbox.show{ display:flex; }
+
+    .lightbox-card{
+      width:min(920px, 92vw);
+      background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.18);
+      backdrop-filter:blur(10px);
+      border-radius:18px;
+      overflow:hidden;
+      box-shadow:0 30px 90px rgba(0,0,0,0.6);
+      position:relative;
+    }
+
+    .lightbox-imgwrap{
+      width:100%;
+      aspect-ratio: 16/10;
+      background:#000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .lightbox-imgwrap img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+      background:#000;
+    }
+
+    .lightbox-bar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      padding:12px 14px;
+      color:#ddd;
+      font-size:14px;
+    }
+
+    .lightbox-btn{
+      background:rgba(255,255,255,0.10);
+      border:1px solid rgba(255,255,255,0.18);
+      color:#fff;
+      padding:8px 12px;
+      border-radius:999px;
+      cursor:pointer;
+      transition:transform .15s ease, background .15s ease;
+      user-select:none;
+    }
+    .lightbox-btn:hover{ transform:scale(1.03); background:rgba(255,255,255,0.16); }
+
+    .lightbox-close{
+      position:absolute;
+      top:10px; right:10px;
+      width:38px; height:38px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      background:rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.15);
+      cursor:pointer;
+      color:#fff;
+      font-size:20px;
+      z-index:2;
+    }
+
+    /* ----- 足迹地图（无连线；hover 显示） ----- */
+    #map{
+      width:95%;
+      max-width:1000px;
+      height:500px;
+      border-radius:15px;
+      border:3px solid var(--primary-color);
+    }
+
+    #timer{ font-size:1.8em; line-height:1.5; }
+    .timer-digit{ color:var(--primary-color); font-weight:bold; }
+
+    @media (max-width: 520px){
+      .heart-item{ width:92px; height:66px; border-width:2px; }
+    }
+  </style>
 </head>
 
 <body>
-  <!-- ✅ 加 preload / playsinline 更稳 -->
-  <audio id="bg-music" loop preload="auto" playsinline>
-    <source src="bgm.mp3" type="audio/mpeg">
-  </audio>
+  <audio id="bg-music" loop>
+    <source src="bgm.mp3" type="audio/mpeg">
+  </audio>
 
-  <div id="login-overlay">
-    <h1 id="enter-btn">点击进入 瑄瑄和硕硕的世界</h1>
-    <div class="login-box" id="login-input-area">
-      <p>请输入解锁密码 (我们的纪念日)</p>
-      <input type="date" id="password-input">
-      <br>
-      <button id="unlock-btn" type="button">解锁</button>
-      <p id="error-msg">日期不对哦，再想想？</p>
-    </div>
-  </div>
+  <div id="login-overlay">
+    <h1 id="enter-btn">点击进入 瑄瑄和硕硕的世界</h1>
+    <div class="login-box" id="login-input-area">
+      <p>请输入解锁密码 (我们的纪念日)</p>
+      <input type="date" id="password-input">
+      <br>
+      <button onclick="checkPassword()">解锁</button>
+      <p id="error-msg" style="color:red; display:none;">日期不对哦，再想想？</p>
+    </div>
+  </div>
 
-  <!-- ✅ 音乐开关（登录后显示） -->
-  <div class="music-fab" id="music-fab">🎵 播放</div>
-  <div class="music-toast" id="music-toast">🎵 Safari 需要再点一下才能播放音乐（点我播放）</div>
+  <div id="main-content">
+    <section id="timer-section">
+      <h2 class="section-title">我们已经相爱了</h2>
+      <div id="timer">正在计算时间...</div>
+    </section>
 
-  <div id="main-content">
-    <section id="timer-section">
-      <h2 class="section-title">我们已经相爱了</h2>
-      <div id="timer">正在计算时间...</div>
-    </section>
+    <section id="gallery-section">
+      <h2 class="section-title">爱的点点滴滴</h2>
+      <div class="heart-stage" id="heart-stage"></div>
+      <p style="margin-top:16px; color:#888;">（点击任意照片可放大查看；键盘 ← → 可切换）</p>
+    </section>
 
-    <section id="gallery-section">
-      <h2 class="section-title">爱的点点滴滴</h2>
-      <div class="heart-stage" id="heart-stage"></div>
-      <p style="margin-top:16px; color:#888;">（点击任意照片可放大查看；键盘 ← → 可切换）</p>
-    </section>
+    <section id="map-section">
+      <h2 class="section-title">我们一起去过的地方</h2>
+      <div id="map"></div>
+    </section>
+  </div>
 
-    <section id="map-section">
-      <h2 class="section-title">我们一起去过的地方</h2>
-      <div id="map"></div>
-    </section>
-  </div>
+  <!-- 大图查看（lightbox） -->
+  <div class="lightbox" id="lightbox">
+    <div class="lightbox-card">
+      <div class="lightbox-close" id="lightbox-close">×</div>
+      <div class="lightbox-imgwrap">
+        <img id="lightbox-img" alt="memory">
+      </div>
+      <div class="lightbox-bar">
+        <div id="lightbox-title">1 / 30</div>
+        <div style="display:flex; gap:10px;">
+          <div class="lightbox-btn" id="prev-btn">上一张</div>
+          <div class="lightbox-btn" id="next-btn">下一张</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- Lightbox -->
-  <div class="lightbox" id="lightbox">
-    <div class="lightbox-card">
-      <div class="lightbox-close" id="lightbox-close">×</div>
-      <div class="lightbox-imgwrap">
-        <img id="lightbox-img" alt="memory">
-      </div>
-      <div class="lightbox-bar">
-        <div id="lightbox-title">1 / 30</div>
-        <div style="display:flex; gap:10px;">
-          <div class="lightbox-btn" id="prev-btn">上一张</div>
-          <div class="lightbox-btn" id="next-btn">下一张</div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // ============ 配置 =============
+    const correctPassword = "2021-05-26";
+    const startDate = new Date("2021-05-26T16:00:00");
+    const PHOTO_TOTAL = 30; // 你目前是 photo1.jpg ~ photo30.jpg
 
-  <script>
-    // ============ 配置 =============
-    const correctPassword = "2021-05-26";
-    const startDate = new Date("2021-05-26T16:00:00");
-    const PHOTO_TOTAL = 30; // photo1.jpg ~ photo30.jpg
+    const mapPoints = [
+      [53.3498, -6.2603, "都柏林", "我们相遇的地方 ☘️"],
+      [48.8566, 2.3522, "巴黎", "一起去看周杰伦"],
+      [29.0469, -13.5899, "兰萨罗特", "第一次旅游"],
+      [51.5074, -0.1278, "伦敦", "特种兵般的听了林俊杰"],
+      [53.4084, -2.9916, "利物浦", "放空脑袋被你安排的一天"],
+      [36.7213, -4.4214, "马拉加", "晒了一周的太阳"],
+      [28.2916, -16.6291, "特内里费", "不会忘记的云海和漫天星星"],
+      [52.3676, 4.9041, "阿姆斯特丹", "难忘的生日"],
+      [25.7209, 119.3758, "福清", "我的家乡"],
+      [41.8057, 123.4315, "沈阳", "你的家乡"],
+      [39.9042, 116.4074, "北京", "永远不会忘记交换半年的快乐"],
+      [39.0841, 117.2009, "天津", "煎饼果子嘻嘻"],
+      [34.3416, 108.9398, "西安", "穿越回了古代"],
+      [36.0671, 120.3826, "青岛", "我爱海鲜你爱酒"],
+      [24.4798, 118.0894, "厦门", "美丽的鼓浪屿"],
+      [25.5037, 119.7912, "平潭", "寻找蓝眼泪失败"],
+      [25.6065, 100.2676, "大理", "忘不掉没有乌云的蓝天"],
+      [25.0406, 102.7122, "昆明", "没吃到生的见手青"]
+    ];
 
-    const mapPoints = [
-      [53.3498, -6.2603, "都柏林", "我们相遇的地方 ☘️"],
-      [48.8566, 2.3522, "巴黎", "一起去看周杰伦"],
-      [29.0469, -13.5899, "兰萨罗特", "第一次旅游"],
-      [51.5074, -0.1278, "伦敦", "特种兵般的听了林俊杰"],
-      [53.4084, -2.9916, "利物浦", "放空脑袋被你安排的一天"],
-      [36.7213, -4.4214, "马拉加", "晒了一周的太阳"],
-      [28.2916, -16.6291, "特内里费", "不会忘记的云海和漫天星星"],
-      [52.3676, 4.9041, "阿姆斯特丹", "难忘的生日"],
-      [25.7209, 119.3758, "福清", "我的家乡"],
-      [41.8057, 123.4315, "沈阳", "你的家乡"],
-      [39.9042, 116.4074, "北京", "永远不会忘记交换半年的快乐"],
-      [39.0841, 117.2009, "天津", "煎饼果子嘻嘻"],
-      [34.3416, 108.9398, "西安", "穿越回了古代"],
-      [36.0671, 120.3826, "青岛", "我爱海鲜你爱酒"],
-      [24.4798, 118.0894, "厦门", "美丽的鼓浪屿"],
-      [25.5037, 119.7912, "平潭", "寻找蓝眼泪失败"],
-      [25.6065, 100.2676, "大理", "忘不掉没有乌云的蓝天"],
-      [25.0406, 102.7122, "昆明", "没吃到生的见手青"]
-    ];
+    // --- 登录逻辑 ---
+    const enterBtn = document.getElementById('enter-btn');
+    enterBtn.addEventListener('click', () => {
+      enterBtn.style.display = 'none';
+      document.getElementById('login-input-area').style.display = 'block';
+    });
 
-    // ============ DOM =============
-    const enterBtn = document.getElementById('enter-btn');
-    const loginBox = document.getElementById('login-input-area');
-    const unlockBtn = document.getElementById('unlock-btn');
-    const errorMsg = document.getElementById('error-msg');
+    function checkPassword(){
+      const inputDate = document.getElementById('password-input').value;
+      if(inputDate === correctPassword){
+        document.getElementById('login-overlay').style.opacity = '0';
+        setTimeout(() => {
+          document.getElementById('login-overlay').style.display = 'none';
+          document.getElementById('main-content').style.display = 'block';
+          setTimeout(() => { document.getElementById('main-content').style.opacity = '1'; }, 50);
 
-    const audio = document.getElementById('bg-music');
-    const musicFab = document.getElementById('music-fab');
-    const musicToast = document.getElementById('music-toast');
+          document.getElementById('bg-music').play().catch(() => {});
+          initTimer();
+          initHeartGallery();
+          initMap();
+        }, 800);
+      }else{
+        document.getElementById('error-msg').style.display = 'block';
+      }
+    }
 
-    let musicReady = false;
+    // --- 计时器 ---
+    function initTimer(){
+      setInterval(() => {
+        const diff = new Date() - startDate;
+        const d = Math.floor(diff / 86400000);
+        const h = Math.floor((diff / 3600000) % 24);
+        const m = Math.floor((diff / 60000) % 60);
+        const s = Math.floor((diff / 1000) % 60);
+        document.getElementById('timer').innerHTML =
+          `<span class="timer-digit">${d}</span> 天 <span class="timer-digit">${h}</span> 小时 <span class="timer-digit">${m}</span> 分 <span class="timer-digit">${s}</span> 秒`;
+      }, 1000);
+    }
 
-    // 进入按钮
-    enterBtn.addEventListener('click', () => {
-      enterBtn.style.display = 'none';
-      loginBox.style.display = 'block';
-    });
+    // =========================
+    // 爱心照片墙 + 点开大图
+    // =========================
+    function initHeartGallery(){
+      const stage = document.getElementById('heart-stage');
+      stage.innerHTML = "";
 
-    // ✅ 音乐UI更新
-    function syncMusicUI(){
-      if(!musicReady){
-        musicFab.textContent = "🎵 播放";
-        return;
-      }
-      musicFab.textContent = audio.paused ? "🎵 播放" : "⏸ 暂停";
-    }
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImg = document.getElementById('lightbox-img');
+      const lightboxTitle = document.getElementById('lightbox-title');
+      const closeBtn = document.getElementById('lightbox-close');
+      const prevBtn = document.getElementById('prev-btn');
+      const nextBtn = document.getElementById('next-btn');
 
-    // ✅ 尝试播放（Safari/手机失败就弹 toast）
-    async function tryPlayFromUserGesture(){
-      // 一些 Safari 需要先 load
-      try { audio.load(); } catch(e){}
+      let currentIndex = 1;
 
-      try{
-        await audio.play();
-        musicReady = true;
-        musicToast.style.display = 'none';
-        musicFab.style.display = 'block';
-        syncMusicUI();
-        return true;
-      }catch(err){
-        // 被拦截 / 不支持 / 静音键等
-        musicReady = true;               // 仍然允许用户用按钮控制
-        musicFab.style.display = 'block';
-        musicToast.style.display = 'block';
-        syncMusicUI();
-        return false;
-      }
-    }
+      function openAt(index){
+        currentIndex = index;
+        lightboxImg.src = `photo${index}.jpg`;
+        lightboxImg.onerror = () => {
+          // 大图缺失：直接关闭（避免占位）
+          lightbox.classList.remove('show');
+        };
+        lightboxTitle.textContent = `${index} / ${PHOTO_TOTAL}`;
+        lightbox.classList.add('show');
+      }
 
-    // ✅ 右上角按钮：随时切换
-    musicFab.addEventListener('click', async () => {
-      try{
-        if(audio.paused){
-          await audio.play();
-        }else{
-          audio.pause();
-        }
-      }catch(e){
-        // 如果 Safari 还拦，继续显示 toast 引导
-        musicToast.style.display = 'block';
-      }
-      syncMusicUI();
-    });
+      function close(){ lightbox.classList.remove('show'); }
+      function prev(){ openAt(currentIndex - 1 < 1 ? PHOTO_TOTAL : currentIndex - 1); }
+      function next(){ openAt(currentIndex + 1 > PHOTO_TOTAL ? 1 : currentIndex + 1); }
 
-    // ✅ toast 点一下播放（手机最稳）
-    musicToast.addEventListener('click', async () => {
-      await tryPlayFromUserGesture();
-      syncMusicUI();
-    });
+      // 绑定一次事件（先清理旧的）
+      closeBtn.onclick = close;
+      prevBtn.onclick = (e) => { e.stopPropagation(); prev(); };
+      nextBtn.onclick = (e) => { e.stopPropagation(); next(); };
+      lightbox.onclick = (e) => { if(e.target === lightbox) close(); };
 
-    // 解锁按钮
-    unlockBtn.addEventListener('click', async () => {
-      const inputDate = document.getElementById('password-input').value;
+      document.onkeydown = (e) => {
+        if(!lightbox.classList.contains('show')) return;
+        if(e.key === 'Escape') close();
+        if(e.key === 'ArrowLeft') prev();
+        if(e.key === 'ArrowRight') next();
+      };
 
-      if(inputDate !== correctPassword){
-        errorMsg.style.display = 'block';
-        return;
-      }
-      errorMsg.style.display = 'none';
+      // ---- 爱心点位：心形曲线 + 内圈填充 ----
+      const W = stage.clientWidth;
+      const H = stage.clientHeight;
 
-      // ✅ 关键：在“用户点击解锁”这个手势里立刻播放
-      await tryPlayFromUserGesture();
+      const scale = Math.min(W, H) / 40;
+      const cx = W / 2;
+      const cy = H / 2 + 10;
 
-      // 过渡动画
-      document.getElementById('login-overlay').style.opacity = '0';
-      setTimeout(() => {
-        document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('main-content').style.display = 'block';
-        setTimeout(() => { document.getElementById('main-content').style.opacity = '1'; }, 50);
+      const outerCount = Math.round(PHOTO_TOTAL * 0.6);
+      const innerCount = PHOTO_TOTAL - outerCount;
+      const points = [];
 
-        initTimer();
-        initHeartGallery();
-        initMap();
-      }, 800);
-    });
+      function heartPoint(t){
+        const x = 16 * Math.pow(Math.sin(t), 3);
+        const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+        return { x, y };
+      }
 
-    // ===== 计时器 =====
-    function initTimer(){
-      setInterval(() => {
-        const diff = new Date() - startDate;
-        const d = Math.floor(diff / 86400000);
-        const h = Math.floor((diff / 3600000) % 24);
-        const m = Math.floor((diff / 60000) % 60);
-        const s = Math.floor((diff / 1000) % 60);
-        document.getElementById('timer').innerHTML =
-          `<span class="timer-digit">${d}</span> 天 <span class="timer-digit">${h}</span> 小时 <span class="timer-digit">${m}</span> 分 <span class="timer-digit">${s}</span> 秒`;
-      }, 1000);
-    }
+      for(let i = 0; i < outerCount; i++){
+        const t = (i / outerCount) * Math.PI * 2;
+        const p = heartPoint(t);
+        points.push({ x: cx + p.x * scale, y: cy - p.y * scale });
+      }
 
-    // ===== 爱心照片墙 =====
-    function initHeartGallery(){
-      const stage = document.getElementById('heart-stage');
-      stage.innerHTML = "";
+      const innerScale = scale * 0.72;
+      for(let i = 0; i < innerCount; i++){
+        const t = (i / innerCount) * Math.PI * 2 + (Math.PI / innerCount);
+        const p = heartPoint(t);
+        const jitterX = (Math.random() - 0.5) * 18;
+        const jitterY = (Math.random() - 0.5) * 14;
+        points.push({ x: cx + p.x * innerScale + jitterX, y: cy - p.y * innerScale + jitterY });
+      }
 
-      const lightbox = document.getElementById('lightbox');
-      const lightboxImg = document.getElementById('lightbox-img');
-      const lightboxTitle = document.getElementById('lightbox-title');
-      const closeBtn = document.getElementById('lightbox-close');
-      const prevBtn = document.getElementById('prev-btn');
-      const nextBtn = document.getElementById('next-btn');
+      // 渲染照片
+      for(let i = 1; i <= PHOTO_TOTAL; i++){
+        const item = document.createElement('div');
+        item.className = 'heart-item';
 
-      let currentIndex = 1;
+        const p = points[i - 1];
+        item.style.left = `${p.x}px`;
+        item.style.top = `${p.y}px`;
 
-      function openAt(index){
-        currentIndex = index;
-        lightboxImg.src = `photo${index}.jpg`;
-        lightboxImg.onerror = () => { lightbox.classList.remove('show'); };
-        lightboxTitle.textContent = `${index} / ${PHOTO_TOTAL}`;
-        lightbox.classList.add('show');
-      }
-      function close(){ lightbox.classList.remove('show'); }
-      function prev(){ openAt(currentIndex - 1 < 1 ? PHOTO_TOTAL : currentIndex - 1); }
-      function next(){ openAt(currentIndex + 1 > PHOTO_TOTAL ? 1 : currentIndex + 1); }
+        const rot = (Math.random() * 10 - 5).toFixed(2);
+        item.style.setProperty('--r', `${rot}deg`);
 
-      closeBtn.onclick = close;
-      prevBtn.onclick = (e) => { e.stopPropagation(); prev(); };
-      nextBtn.onclick = (e) => { e.stopPropagation(); next(); };
-      lightbox.onclick = (e) => { if(e.target === lightbox) close(); };
+        const img = document.createElement('img');
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.src = `photo${i}.jpg`;
+        img.onerror = () => {
+          // 缺图：直接删掉卡片，不出现占位
+          item.remove();
+        };
 
-      document.onkeydown = (e) => {
-        if(!lightbox.classList.contains('show')) return;
-        if(e.key === 'Escape') close();
-        if(e.key === 'ArrowLeft') prev();
-        if(e.key === 'ArrowRight') next();
-      };
+        item.onclick = (e) => {
+          e.stopPropagation();
+          openAt(i);
+        };
 
-      const W = stage.clientWidth;
-      const H = stage.clientHeight;
-      const scale = Math.min(W, H) / 40;
-      const cx = W / 2;
-      const cy = H / 2 + 10;
+        item.appendChild(img);
+        stage.appendChild(item);
+      }
 
-      const outerCount = Math.round(PHOTO_TOTAL * 0.6);
-      const innerCount = PHOTO_TOTAL - outerCount;
-      const points = [];
+      // 重新布局（防抖）
+      window.addEventListener('resize', () => {
+        clearTimeout(window.__heartResizeTimer);
+        window.__heartResizeTimer = setTimeout(() => {
+          initHeartGallery();
+        }, 250);
+      });
+    }
 
-      function heartPoint(t){
-        const x = 16 * Math.pow(Math.sin(t), 3);
-        const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
-        return { x, y };
-      }
+    // --- 地图：无连线 + hover 显示弹窗 ---
+    function initMap(){
+      var map = L.map('map').setView([40, 60], 3);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-      for(let i = 0; i < outerCount; i++){
-        const t = (i / outerCount) * Math.PI * 2;
-        const p = heartPoint(t);
-        points.push({ x: cx + p.x * scale, y: cy - p.y * scale });
-      }
+      var heartIcon = L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/833/833472.png',
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+        popupAnchor: [0, -30]
+      });
 
-      const innerScale = scale * 0.72;
-      for(let i = 0; i < innerCount; i++){
-        const t = (i / innerCount) * Math.PI * 2 + (Math.PI / innerCount);
-        const p = heartPoint(t);
-        const jitterX = (Math.random() - 0.5) * 18;
-        const jitterY = (Math.random() - 0.5) * 14;
-        points.push({ x: cx + p.x * innerScale + jitterX, y: cy - p.y * innerScale + jitterY });
-      }
+      const bounds = [];
 
-      for(let i = 1; i <= PHOTO_TOTAL; i++){
-        const item = document.createElement('div');
-        item.className = 'heart-item';
+      mapPoints.forEach(p => {
+        const latlng = [p[0], p[1]];
+        bounds.push(latlng);
 
-        const p = points[i - 1];
-        item.style.left = `${p.x}px`;
-        item.style.top = `${p.y}px`;
+        const marker = L.marker(latlng, { icon: heartIcon }).addTo(map);
 
-        const rot = (Math.random() * 10 - 5).toFixed(2);
-        item.style.setProperty('--r', `${rot}deg`);
+        marker.bindPopup(
+          `<b style="color:#ff6b81">${p[2]}</b><br>${p[3]}`,
+          {
+            closeButton: false,
+            autoClose: true,
+            closeOnClick: false,
+            offset: L.point(0, -10)
+          }
+        );
 
-        const img = document.createElement('img');
-        img.loading = "lazy";
-        img.decoding = "async";
-        img.src = `photo${i}.jpg`;
-        img.onerror = () => item.remove();
+        marker.on('mouseover', function(){ this.openPopup(); });
+        marker.on('mouseout', function(){ this.closePopup(); });
+      });
 
-        item.onclick = (e) => { e.stopPropagation(); openAt(i); };
-
-        item.appendChild(img);
-        stage.appendChild(item);
-      }
-
-      // 防抖重排
-      window.addEventListener('resize', () => {
-        clearTimeout(window.__heartResizeTimer);
-        window.__heartResizeTimer = setTimeout(() => initHeartGallery(), 250);
-      }, { once:false });
-    }
-
-    // ===== 地图：电脑 hover，手机 tap =====
-    function initMap(){
-      const map = L.map('map').setView([40, 60], 3);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-      const heartIcon = L.icon({
-        iconUrl: 'https://cdn-icons-png.flaticon.com/512/833/833472.png',
-        iconSize: [30, 30],
-        iconAnchor: [15, 30],
-        popupAnchor: [0, -30]
-      });
-
-      const bounds = [];
-      const markers = [];
-
-      mapPoints.forEach(p => {
-        const latlng = [p[0], p[1]];
-        bounds.push(latlng);
-
-        const marker = L.marker(latlng, { icon: heartIcon }).addTo(map);
-        markers.push(marker);
-
-        marker.bindPopup(
-          `<b style="color:#ff6b81">${p[2]}</b><br>${p[3]}`,
-          { closeButton:false, autoClose:true, closeOnClick:false, offset:L.point(0,-10) }
-        );
-
-        // 电脑：hover
-        marker.on('mouseover', function(){ this.openPopup(); });
-        marker.on('mouseout', function(){ this.closePopup(); });
-
-        // 手机：点一下打开（无 hover）
-        marker.on('click', function(){
-          markers.forEach(m => { if(m !== this) m.closePopup(); });
-          this.openPopup();
-        });
-      });
-
-      if(bounds.length) map.fitBounds(bounds, { padding: [30, 30] });
-    }
-  </script>
+      if(bounds.length){
+        map.fitBounds(bounds, { padding: [30, 30] });
+      }
+    }
+  </script>
 </body>
 </html>
