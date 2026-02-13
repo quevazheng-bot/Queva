@@ -307,6 +307,26 @@
       </div>
     </div>
   </div>
+<!-- 手机端需要用户手势：点击开启音乐 -->
+<div id="music-toast" style="
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 999px;
+  display: none;
+  z-index: 9999;
+  backdrop-filter: blur(10px);
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+">
+  🎵 点击开启背景音乐
+</div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -344,24 +364,51 @@
       document.getElementById('login-input-area').style.display = 'block';
     });
 
-    function checkPassword(){
-      const inputDate = document.getElementById('password-input').value;
-      if(inputDate === correctPassword){
-        document.getElementById('login-overlay').style.opacity = '0';
-        setTimeout(() => {
-          document.getElementById('login-overlay').style.display = 'none';
-          document.getElementById('main-content').style.display = 'block';
-          setTimeout(() => { document.getElementById('main-content').style.opacity = '1'; }, 50);
+function checkPassword(){
+  const inputDate = document.getElementById('password-input').value;
 
-          document.getElementById('bg-music').play().catch(() => {});
-          initTimer();
-          initHeartGallery();
-          initMap();
-        }, 800);
-      }else{
-        document.getElementById('error-msg').style.display = 'block';
-      }
-    }
+  if (inputDate === correctPassword) {
+    document.getElementById('login-overlay').style.opacity = '0';
+
+    setTimeout(() => {
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('main-content').style.display = 'block';
+      setTimeout(() => {
+        document.getElementById('main-content').style.opacity = '1';
+      }, 50);
+
+      // ===== 手机音乐：先尝试自动播放，失败则提示点击 =====
+      const audio = document.getElementById('bg-music');
+      const toast = document.getElementById('music-toast');
+
+      const tryPlay = () => {
+        audio.play().then(() => {
+          toast.style.display = 'none';
+          toast.removeEventListener('click', tryPlay);
+        }).catch(() => {});
+      };
+
+      audio.play().then(() => {
+        toast.style.display = 'none';
+      }).catch(() => {
+        toast.style.display = 'block';
+        toast.addEventListener('click', tryPlay);
+        document.addEventListener('touchstart', tryPlay, { once: true });
+      });
+
+      // ===== 初始化功能 =====
+      initTimer();
+      initHeartGallery();
+      initMap();
+
+    }, 800);
+
+  } else {
+    // ❗这里一定要和 HTML 的 id 一致：你 HTML 是 error-msg
+    document.getElementById('error-msg').style.display = 'block';
+  }
+}
+
 
     // --- 计时器 ---
     function initTimer(){
