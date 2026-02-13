@@ -307,26 +307,6 @@
       </div>
     </div>
   </div>
-<!-- 手机端需要用户手势：点击开启音乐 -->
-<div id="music-toast" style="
-  position: fixed;
-  left: 50%;
-  bottom: 18px;
-  transform: translateX(-50%);
-  background: rgba(0,0,0,0.55);
-  border: 1px solid rgba(255,255,255,0.18);
-  color: #fff;
-  padding: 10px 14px;
-  border-radius: 999px;
-  display: none;
-  z-index: 9999;
-  backdrop-filter: blur(10px);
-  font-size: 14px;
-  cursor: pointer;
-  user-select: none;
-">
-  🎵 点击开启背景音乐
-</div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -364,50 +344,24 @@
       document.getElementById('login-input-area').style.display = 'block';
     });
 
-function checkPassword(){
-  const inputDate = document.getElementById('password-input').value;
+    function checkPassword(){
+      const inputDate = document.getElementById('password-input').value;
+      if(inputDate === correctPassword){
+        document.getElementById('login-overlay').style.opacity = '0';
+        setTimeout(() => {
+          document.getElementById('login-overlay').style.display = 'none';
+          document.getElementById('main-content').style.display = 'block';
+          setTimeout(() => { document.getElementById('main-content').style.opacity = '1'; }, 50);
 
-  if (inputDate !== correctPassword) {
-    document.getElementById('error-msg').style.display = 'block';
-    return;
-  }
-
-  // ✅ 关键：立刻尝试播放（必须在用户点击的同一瞬间）
-  const audio = document.getElementById('bg-music');
-  const toast = document.getElementById('music-toast');
-
-  const tryPlay = () => {
-    audio.play().then(() => {
-      toast.style.display = 'none';
-      toast.removeEventListener('click', tryPlay);
-    }).catch(() => {});
-  };
-
-  audio.play().then(() => {
-    toast.style.display = 'none';
-  }).catch(() => {
-    toast.style.display = 'block';
-    toast.addEventListener('click', tryPlay);
-    document.addEventListener('touchstart', tryPlay, { once: true });
-  });
-
-  // ✅ 你的动画延迟保留，但不影响音乐
-  document.getElementById('login-overlay').style.opacity = '0';
-
-  setTimeout(() => {
-    document.getElementById('login-overlay').style.display = 'none';
-    document.getElementById('main-content').style.display = 'block';
-    setTimeout(() => {
-      document.getElementById('main-content').style.opacity = '1';
-    }, 50);
-
-    initTimer();
-    initHeartGallery();
-    initMap();
-  }, 800);
-}
-
-
+          document.getElementById('bg-music').play().catch(() => {});
+          initTimer();
+          initHeartGallery();
+          initMap();
+        }, 800);
+      }else{
+        document.getElementById('error-msg').style.display = 'block';
+      }
+    }
 
     // --- 计时器 ---
     function initTimer(){
@@ -418,7 +372,7 @@ function checkPassword(){
         const m = Math.floor((diff / 60000) % 60);
         const s = Math.floor((diff / 1000) % 60);
         document.getElementById('timer').innerHTML =
-          <span class="timer-digit">${d}</span> 天 <span class="timer-digit">${h}</span> 小时 <span class="timer-digit">${m}</span> 分 <span class="timer-digit">${s}</span> 秒;
+          `<span class="timer-digit">${d}</span> 天 <span class="timer-digit">${h}</span> 小时 <span class="timer-digit">${m}</span> 分 <span class="timer-digit">${s}</span> 秒`;
       }, 1000);
     }
 
@@ -440,12 +394,12 @@ function checkPassword(){
 
       function openAt(index){
         currentIndex = index;
-        lightboxImg.src = photo${index}.jpg;
+        lightboxImg.src = `photo${index}.jpg`;
         lightboxImg.onerror = () => {
           // 大图缺失：直接关闭（避免占位）
           lightbox.classList.remove('show');
         };
-        lightboxTitle.textContent = ${index} / ${PHOTO_TOTAL};
+        lightboxTitle.textContent = `${index} / ${PHOTO_TOTAL}`;
         lightbox.classList.add('show');
       }
 
@@ -505,16 +459,16 @@ function checkPassword(){
         item.className = 'heart-item';
 
         const p = points[i - 1];
-        item.style.left = ${p.x}px;
-        item.style.top = ${p.y}px;
+        item.style.left = `${p.x}px`;
+        item.style.top = `${p.y}px`;
 
         const rot = (Math.random() * 10 - 5).toFixed(2);
-        item.style.setProperty('--r', ${rot}deg);
+        item.style.setProperty('--r', `${rot}deg`);
 
         const img = document.createElement('img');
         img.loading = "lazy";
         img.decoding = "async";
-        img.src = photo${i}.jpg;
+        img.src = `photo${i}.jpg`;
         img.onerror = () => {
           // 缺图：直接删掉卡片，不出现占位
           item.remove();
@@ -559,7 +513,7 @@ function checkPassword(){
         const marker = L.marker(latlng, { icon: heartIcon }).addTo(map);
 
         marker.bindPopup(
-          <b style="color:#ff6b81">${p[2]}</b><br>${p[3]},
+          `<b style="color:#ff6b81">${p[2]}</b><br>${p[3]}`,
           {
             closeButton: false,
             autoClose: true,
