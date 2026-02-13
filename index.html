@@ -367,47 +367,46 @@
 function checkPassword(){
   const inputDate = document.getElementById('password-input').value;
 
-  if (inputDate === correctPassword) {
-    document.getElementById('login-overlay').style.opacity = '0';
-
-    setTimeout(() => {
-      document.getElementById('login-overlay').style.display = 'none';
-      document.getElementById('main-content').style.display = 'block';
-      setTimeout(() => {
-        document.getElementById('main-content').style.opacity = '1';
-      }, 50);
-
-      // ===== 手机音乐：先尝试自动播放，失败则提示点击 =====
-      const audio = document.getElementById('bg-music');
-      const toast = document.getElementById('music-toast');
-
-      const tryPlay = () => {
-        audio.play().then(() => {
-          toast.style.display = 'none';
-          toast.removeEventListener('click', tryPlay);
-        }).catch(() => {});
-      };
-
-      audio.play().then(() => {
-        toast.style.display = 'none';
-      }).catch(() => {
-        toast.style.display = 'block';
-        toast.addEventListener('click', tryPlay);
-        document.addEventListener('touchstart', tryPlay, { once: true });
-      });
-
-      // ===== 初始化功能 =====
-      initTimer();
-      initHeartGallery();
-      initMap();
-
-    }, 800);
-
-  } else {
-    // ❗这里一定要和 HTML 的 id 一致：你 HTML 是 error-msg
+  if (inputDate !== correctPassword) {
     document.getElementById('error-msg').style.display = 'block';
+    return;
   }
+
+  // ✅ 关键：立刻尝试播放（必须在用户点击的同一瞬间）
+  const audio = document.getElementById('bg-music');
+  const toast = document.getElementById('music-toast');
+
+  const tryPlay = () => {
+    audio.play().then(() => {
+      toast.style.display = 'none';
+      toast.removeEventListener('click', tryPlay);
+    }).catch(() => {});
+  };
+
+  audio.play().then(() => {
+    toast.style.display = 'none';
+  }).catch(() => {
+    toast.style.display = 'block';
+    toast.addEventListener('click', tryPlay);
+    document.addEventListener('touchstart', tryPlay, { once: true });
+  });
+
+  // ✅ 你的动画延迟保留，但不影响音乐
+  document.getElementById('login-overlay').style.opacity = '0';
+
+  setTimeout(() => {
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+    setTimeout(() => {
+      document.getElementById('main-content').style.opacity = '1';
+    }, 50);
+
+    initTimer();
+    initHeartGallery();
+    initMap();
+  }, 800);
 }
+
 
 
     // --- 计时器 ---
