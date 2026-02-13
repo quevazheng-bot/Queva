@@ -254,30 +254,11 @@
     @media (max-width: 520px){
       .heart-item{ width:92px; height:66px; border-width:2px; }
     }
-
-    /* ✅ 音乐按钮（电脑可能自动播；手机点击播） */
-    #music-toggle{
-      position: fixed;
-      right: 16px;
-      bottom: 16px;
-      z-index: 9999;
-      background: rgba(0,0,0,0.55);
-      border: 1px solid rgba(255,255,255,0.18);
-      color: #fff;
-      padding: 10px 14px;
-      border-radius: 999px;
-      display: none; /* 默认隐藏：能自动播就不出现，不能播才出现 */
-      backdrop-filter: blur(10px);
-      font-size: 14px;
-      cursor: pointer;
-      user-select: none;
-    }
   </style>
 </head>
 
 <body>
-  <!-- ✅ iOS 更稳：加 playsinline -->
-  <audio id="bg-music" loop playsinline>
+  <audio id="bg-music" loop>
     <source src="bgm.mp3" type="audio/mpeg">
   </audio>
 
@@ -326,9 +307,26 @@
       </div>
     </div>
   </div>
-
-  <!-- ✅ 统一音乐按钮：电脑能自动播就不显示；手机显示让人点 -->
-  <div id="music-toggle">🎵 开启音乐</div>
+<!-- 手机端需要用户手势：点击开启音乐 -->
+<div id="music-toast" style="
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 999px;
+  display: none;
+  z-index: 9999;
+  backdrop-filter: blur(10px);
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+">
+  🎵 点击开启背景音乐
+</div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -336,7 +334,7 @@
     // ============ 配置 =============
     const correctPassword = "2021-05-26";
     const startDate = new Date("2021-05-26T16:00:00");
-    const PHOTO_TOTAL = 30; // photo1.jpg ~ photo30.jpg
+    const PHOTO_TOTAL = 30; // 你目前是 photo1.jpg ~ photo30.jpg
 
     const mapPoints = [
       [53.3498, -6.2603, "都柏林", "我们相遇的地方 ☘️"],
@@ -366,98 +364,50 @@
       document.getElementById('login-input-area').style.display = 'block';
     });
 
-    // ✅ 音乐控制（电脑尝试自动播；手机/被拦截就显示按钮）
-    const audio = document.getElementById('bg-music');
-    const musicToggle = document.getElementById('music-toggle');
-    let isPlaying = false;
+function checkPassword(){
+  const inputDate = document.getElementById('password-input').value;
 
-    function updateMusicBtn(){
-      musicToggle.textContent = isPlaying ? '🔇 关闭音乐' : '🎵 开启音乐';
-    }
+  if (inputDate !== correctPassword) {
+    document.getElementById('error-msg').style.display = 'block';
+    return;
+  }
 
-    function showMusicBtn(){
-      musicToggle.style.display = 'block';
-      updateMusicBtn();
-    }
+  // ✅ 关键：立刻尝试播放（必须在用户点击的同一瞬间）
+  const audio = document.getElementById('bg-music');
+  const toast = document.getElementById('music-toast');
 
-    function hideMusicBtn(){
-      musicToggle.style.display = 'none';
-    }
+  const tryPlay = () => {
+    audio.play().then(() => {
+      toast.style.display = 'none';
+      toast.removeEventListener('click', tryPlay);
+    }).catch(() => {});
+  };
 
-    function playMusic(){
-      return audio.play().then(() => {
-        isPlaying = true;
-        updateMusicBtn();
-      });
-    }
+  audio.play().then(() => {
+    toast.style.display = 'none';
+  }).catch(() => {
+    toast.style.display = 'block';
+    toast.addEventListener('click', tryPlay);
+    document.addEventListener('touchstart', tryPlay, { once: true });
+  });
 
-    function pauseMusic(){
-      audio.pause();
-      isPlaying = false;
-      updateMusicBtn();
-    }
+  // ✅ 你的动画延迟保留，但不影响音乐
+  document.getElementById('login-overlay').style.opacity = '0';
 
-    musicToggle.addEventListener('click', () => {
-      if(!isPlaying){
-        playMusic().catch(() => {
-          // 还是失败就别隐藏按钮
-          showMusicBtn();
-        });
-      }else{
-        pauseMusic();
-        showMusicBtn(); // 关了也保留按钮，方便再开
-      }
-    });
+  setTimeout(() => {
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+    setTimeout(() => {
+      document.getElementById('main-content').style.opacity = '1';
+    }, 50);
 
-    // 只要用户在页面有一次点击/触摸，就再试一次（手机最稳）
-    function attachOneTimeGestureRetry(){
-      const retry = () => {
-        if(isPlaying) return;
-        playMusic().then(() => {
-          // 播放成功：按钮可隐藏，也可保留（这里选择隐藏）
-          hideMusicBtn();
-        }).catch(() => {
-          showMusicBtn();
-        });
-      };
-      document.addEventListener('touchstart', retry, { once: true, passive: true });
-      document.addEventListener('click', retry, { once: true, passive: true });
-    }
+    initTimer();
+    initHeartGallery();
+    initMap();
+  }, 800);
+}
 
-    function checkPassword(){
-      const inputDate = document.getElementById('password-input').value;
 
-      if (inputDate !== correctPassword) {
-        document.getElementById('error-msg').style.display = 'block';
-        return;
-      }
-
-      // ✅ 关键：在“解锁按钮点击”这个用户手势里立刻尝试播放
-      hideMusicBtn();
-      playMusic().then(() => {
-        // 电脑多数会直接成功：不显示按钮
-        hideMusicBtn();
-      }).catch(() => {
-        // 手机/被拦截：显示按钮，让用户点
-        showMusicBtn();
-        attachOneTimeGestureRetry();
-      });
-
-      // ✅ 你的动画延迟保留
-      document.getElementById('login-overlay').style.opacity = '0';
-
-      setTimeout(() => {
-        document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('main-content').style.display = 'block';
-        setTimeout(() => {
-          document.getElementById('main-content').style.opacity = '1';
-        }, 50);
-
-        initTimer();
-        initHeartGallery();
-        initMap();
-      }, 800);
-    }
 
     // --- 计时器 ---
     function initTimer(){
@@ -468,7 +418,7 @@
         const m = Math.floor((diff / 60000) % 60);
         const s = Math.floor((diff / 1000) % 60);
         document.getElementById('timer').innerHTML =
-          `<span class="timer-digit">${d}</span> 天 <span class="timer-digit">${h}</span> 小时 <span class="timer-digit">${m}</span> 分 <span class="timer-digit">${s}</span> 秒`;
+          <span class="timer-digit">${d}</span> 天 <span class="timer-digit">${h}</span> 小时 <span class="timer-digit">${m}</span> 分 <span class="timer-digit">${s}</span> 秒;
       }, 1000);
     }
 
@@ -490,11 +440,12 @@
 
       function openAt(index){
         currentIndex = index;
-        lightboxImg.src = `photo${index}.jpg`;
+        lightboxImg.src = photo${index}.jpg;
         lightboxImg.onerror = () => {
+          // 大图缺失：直接关闭（避免占位）
           lightbox.classList.remove('show');
         };
-        lightboxTitle.textContent = `${index} / ${PHOTO_TOTAL}`;
+        lightboxTitle.textContent = ${index} / ${PHOTO_TOTAL};
         lightbox.classList.add('show');
       }
 
@@ -502,6 +453,7 @@
       function prev(){ openAt(currentIndex - 1 < 1 ? PHOTO_TOTAL : currentIndex - 1); }
       function next(){ openAt(currentIndex + 1 > PHOTO_TOTAL ? 1 : currentIndex + 1); }
 
+      // 绑定一次事件（先清理旧的）
       closeBtn.onclick = close;
       prevBtn.onclick = (e) => { e.stopPropagation(); prev(); };
       nextBtn.onclick = (e) => { e.stopPropagation(); next(); };
@@ -514,6 +466,7 @@
         if(e.key === 'ArrowRight') next();
       };
 
+      // ---- 爱心点位：心形曲线 + 内圈填充 ----
       const W = stage.clientWidth;
       const H = stage.clientHeight;
 
@@ -546,22 +499,26 @@
         points.push({ x: cx + p.x * innerScale + jitterX, y: cy - p.y * innerScale + jitterY });
       }
 
+      // 渲染照片
       for(let i = 1; i <= PHOTO_TOTAL; i++){
         const item = document.createElement('div');
         item.className = 'heart-item';
 
         const p = points[i - 1];
-        item.style.left = `${p.x}px`;
-        item.style.top = `${p.y}px`;
+        item.style.left = ${p.x}px;
+        item.style.top = ${p.y}px;
 
         const rot = (Math.random() * 10 - 5).toFixed(2);
-        item.style.setProperty('--r', `${rot}deg`);
+        item.style.setProperty('--r', ${rot}deg);
 
         const img = document.createElement('img');
         img.loading = "lazy";
         img.decoding = "async";
-        img.src = `photo${i}.jpg`;
-        img.onerror = () => { item.remove(); };
+        img.src = photo${i}.jpg;
+        img.onerror = () => {
+          // 缺图：直接删掉卡片，不出现占位
+          item.remove();
+        };
 
         item.onclick = (e) => {
           e.stopPropagation();
@@ -572,6 +529,7 @@
         stage.appendChild(item);
       }
 
+      // 重新布局（防抖）
       window.addEventListener('resize', () => {
         clearTimeout(window.__heartResizeTimer);
         window.__heartResizeTimer = setTimeout(() => {
@@ -601,7 +559,7 @@
         const marker = L.marker(latlng, { icon: heartIcon }).addTo(map);
 
         marker.bindPopup(
-          `<b style="color:#ff6b81">${p[2]}</b><br>${p[3]}`,
+          <b style="color:#ff6b81">${p[2]}</b><br>${p[3]},
           {
             closeButton: false,
             autoClose: true,
@@ -612,9 +570,6 @@
 
         marker.on('mouseover', function(){ this.openPopup(); });
         marker.on('mouseout', function(){ this.closePopup(); });
-
-        // ✅ 手机上没有 hover：点一下也能显示
-        marker.on('click', function(){ this.openPopup(); });
       });
 
       if(bounds.length){
